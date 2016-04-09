@@ -11,6 +11,56 @@
  *                                   (Useful for testing only)
  * @return   {Firefeed}
  */
+
+//added by Mike from here
+var firebase = new Firebase("https://austwits.firebaseio.com/");
+
+// monitor state changes and react to updates
+var authClient = new FirebaseSimpleLogin(chatRef, function(error, user) {
+  if (error) {
+    // an error occurred while attempting login
+    console.log(error);
+  } else if (user) {
+    // user authenticated with Firebase
+    console.log('User ID: ' + user.id + ', Provider: ' + user.provider);
+  } else {
+    // user is logged out
+  }
+});
+
+var userid = info.id; // info is from the login() call earlier.
+var sparkRef = firebase.child("sparks").push();
+var sparkRefId = sparkRef.name();
+
+// Add spark to global list.
+sparkRef.set(spark);
+
+// Add spark ID to user's list of posted sparks.
+var currentUser = firebase.child("users").child(userid);
+currentUser.child("sparks").child(sparkRefId).set(true);
+
+// Add spark ID to the feed of everyone following this user.
+currentUser.child("followers").once("value", function(list) {
+  list.forEach(function(follower) {
+    var childRef = firebase.child("users").child(follower.name());
+    childRef.child("feed").child(sparkRefId).set(true);
+  });
+});
+
+var feed = firebase.child("users").child(userid).child("feed");
+feed.on("child_added", function(snapshot) {
+  var sparkID = snapshot.name();
+  var sparkRef = firebase.child("sparks").child(sparkID);
+  sparkRef.on("value", function(spark) {
+    // Render the spark into the user's feed.
+  });
+});
+
+
+
+// perform the login (to Facebook in this case)
+authClient.login('facebook');
+
 function Firefeed(baseURL, newContext) {
   var self = this;
   this._name = null;
